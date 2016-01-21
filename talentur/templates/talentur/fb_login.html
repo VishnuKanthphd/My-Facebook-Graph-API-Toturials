@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Nikhil's Tut</title>
+    <meta charset="UTF-8">
+    {% load staticfiles %}
+    <script src="{% static 'talentur/js/jquery-1.11.1.js' %}"></script>
+    <script src="{% static 'talentur/js/jquery.cookie.js' %}"></script>
+
+    <style>
+    </style>
+  </head>
+
+  <body>
+    <script>
+
+      var apiEndPointsHelper = {
+        'main_api_endpoint_prefix': 'https://graph.facebook.com/v2.5/',
+        'main_api_endpoint_suffix': '?format=json&access_token='
+      }
+      var csrftoken = $.cookie('csrftoken');
+      // This is called with the results from from FB.getLoginStatus().
+      function statusChangeCallback(response) { 
+        console.log('statusChangeCallback');
+        console.log(response);
+
+        if (response.status === 'connected') {
+          // Logged into your app and Facebook.
+          var accessToken = response.authResponse.accessToken
+          getPosts();
+        } else if (response.status === 'not_authorized') {
+          // The person is logged into Facebook, but not your app.
+          document.getElementById('status').innerHTML = 'Please log ' +
+            'into this app.';
+        } else {
+          // The person is not logged into Facebook, so we're not sure if
+          // they are logged into this app or not.
+          document.getElementById('status').innerHTML = 'Please log ' +
+            'into Facebook.';
+        }
+      }
+
+      function checkLoginState() {
+        FB.getLoginStatus(function(response) {
+          statusChangeCallback(response);
+        });
+      }
+
+      window.fbAsyncInit = function() {
+      FB.init({
+        appId      : '486958151512874',
+        cookie     : true,  // enable cookies to allow the server to access 
+                            // the session
+        xfbml      : true,  // parse social plugins on this page
+        version    : 'v2.2' // use version 2.2
+      });
+
+      FB.getLoginStatus(function(response) {
+        statusChangeCallback(response);
+      });
+
+      };
+      
+      // Load the SDK asynchronously
+      (function(d, s, id) {
+        var js, fjs = d.getElementsByTagName(s)[0];
+        if (d.getElementById(id)) return;
+        js = d.createElement(s); js.id = id;
+        js.src = "//connect.facebook.net/en_US/sdk.js";
+        fjs.parentNode.insertBefore(js, fjs);
+      }(document, 'script', 'facebook-jssdk'));
+
+      function getPosts() {
+        FB.api('me/posts/?limit=5000&fields=comments.summary(true),likes.summary(true).fields(name), message, story', function(response) {
+          passPosts(JSON.stringify(response))
+        });
+      }     
+
+      function csrfSafeMethod(method) {
+        // these HTTP methods do not require CSRF protection
+        return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+      }
+      $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+          if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+              xhr.setRequestHeader("X-CSRFToken", csrftoken);
+          }
+        }
+      });
+
+      function passPosts(userPosts){
+        $.ajax({
+          method: "POST",
+          url: "/fb_login/",
+          data: { 
+            "user_posts": userPosts,
+            }
+        })
+        .success(function(data) {
+          //results
+        });
+      }
+    </script>
+
+    <fb:login-button scope="public_profile,email, user_posts" onlogin="checkLoginState();">
+    </fb:login-button>
+
+    <div id="status">
+    </div>
+    
+
+
+  </body>
+
+</html>
